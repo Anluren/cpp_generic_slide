@@ -1127,7 +1127,214 @@ Typical compilation time impact:
 
 ## Common Pitfalls
 
+⚠️ **Cryptic error messages** - Template errors can be complex
+⚠️ **Code bloat** - Each instantiation generates code
+⚠️ **Compilation time** - Templates increase compile time
+⚠️ **Debugging difficulty** - Template code harder to step through
+
 **Solutions**: Use concepts (C++20), forward declarations, explicit instantiation, and precompiled headers
+
+---
+
+## Pitfall 1: Template Error Messages
+
+```cpp
+template <typename T>
+void process(T value) {
+    value.nonexistent_method();  // Typo!
+}
+
+std::vector<int> vec;
+process(vec);
+
+// Error: 50+ lines of template instantiation stack trace
+// error: 'class std::vector<int>' has no member named 'nonexistent_method'
+// in instantiation of 'void process(T) [with T = std::vector<int>]'
+// ... dozens more lines ...
+```
+
+**Solution: Use concepts for clearer errors**
+```cpp
+template <typename T>
+concept HasMethod = requires(T t) { t.nonexistent_method(); };
+
+template <HasMethod T>
+void process(T value) {
+    value.nonexistent_method();
+}
+
+process(vec);  // Clear error: constraint not satisfied!
+```
+
+---
+
+## Pitfall 2: Accidental Template Instantiation
+
+```cpp
+// header.h
+template <typename T>
+class HeavyClass {
+    // 1000+ lines of complex code
+};
+
+// In 50 different .cpp files:
+#include "header.h"
+HeavyClass<int> obj;  // Each file re-compiles the template!
+```
+
+**Solution: Explicit instantiation**
+```cpp
+// header.h
+template <typename T>
+class HeavyClass { /* ... */ };
+
+extern template class HeavyClass<int>;  // Declare only
+
+// implementation.cpp
+template class HeavyClass<int>;  // Define once
+
+// Now all files use pre-compiled version
+```
+
+---
+
+## Pitfall 3: Template Argument Deduction Issues
+
+```cpp
+template <typename T>
+void print(T a, T b) {  // Both parameters must be same type
+    std::cout << a << " " << b << "\n";
+}
+
+print(1, 2.5);  // Error! T = int or double?
+
+// Problem: Cannot deduce T
+template <typename T>
+T max(T a, T b) { return a > b ? a : b; }
+auto result = max(42, 3.14);  // Error: conflicting types
+```
+
+**Solutions:**
+```cpp
+// Solution 1: Multiple template parameters
+template <typename T, typename U>
+void print(T a, U b) { std::cout << a << " " << b << "\n"; }
+
+// Solution 2: Explicit type
+auto result = max<double>(42, 3.14);  // OK
+
+// Solution 3: Common type
+template <typename T, typename U>
+auto max(T a, U b) { return (a > b) ? a : b; }  // C++14
+```
+
+---
+
+## Pitfall 4: typename vs class Keyword Confusion
+
+```cpp
+template <typename T>
+class Container {
+    // Wrong: compiler thinks T::iterator is a value
+    T::iterator it;  // Error!
+    
+    // Correct: tell compiler it's a type
+    typename T::iterator it;  // OK
+    
+    // Also wrong in dependent contexts
+    std::vector<T>::size_type count;  // Error!
+    
+    // Correct
+    typename std::vector<T>::size_type count;  // OK
+};
+```
+
+**Rule:** Use `typename` when referring to dependent type names
+
+---
+
+## Pitfall 5: Template Template Parameter Confusion
+
+```cpp
+// Wrong: Can't pass std::vector directly
+template <typename Container>
+class Adapter {
+    Container<int> data;  // Error: Container is a type, not template!
+};
+
+Adapter<std::vector<int>> a;  // Wrong usage
+
+// Correct: Use template template parameter
+template <template <typename> class Container>
+class Adapter {
+    Container<int> data;  // OK: Container is a template
+};
+
+// But std::vector has multiple template parameters!
+Adapter<std::vector> a;  // Error: std::vector needs allocator too
+
+// Full correct version
+template <template <typename, typename...> class Container>
+class Adapter {
+    Container<int> data;
+};
+
+Adapter<std::vector> a;  // OK
+```
+
+---
+
+## Pitfall 6: Two-Phase Lookup
+
+```cpp
+void helper() { std::cout << "Non-template helper\n"; }
+
+template <typename T>
+void process() {
+    helper();  // Which helper? Looked up at definition time!
+}
+
+void helper() { std::cout << "Later helper\n"; }  // Too late!
+
+process<int>();  // Calls first helper, not this one
+```
+
+**Solution: Understand name lookup phases**
+- Non-dependent names: looked up at template definition
+- Dependent names: looked up at template instantiation
+
+```cpp
+template <typename T>
+void process(T value) {
+    value.method();  // Dependent: looked up at instantiation
+    helper();         // Non-dependent: looked up at definition
+}
+```
+
+---
+
+## Pitfall 7: Reference Collapsing Surprise
+
+```cpp
+template <typename T>
+void func(T&& param);  // Universal/forwarding reference
+
+int x = 42;
+func(x);      // T = int&, param = int& && -> int&  (reference collapse)
+func(42);     // T = int,  param = int&&
+
+// Can lead to unexpected behavior
+template <typename T>
+void wrapper(T&& arg) {
+    process(arg);  // Always passes lvalue! Lost rvalue-ness
+}
+
+// Correct: Use std::forward
+template <typename T>
+void wrapper(T&& arg) {
+    process(std::forward<T>(arg));  // Preserves value category
+}
+```
 
 ---
 
