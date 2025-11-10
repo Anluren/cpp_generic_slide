@@ -12,9 +12,50 @@ style: |
   }
   h1 {
     font-size: 52px;
+    color: #00599C;
   }
   h2 {
     font-size: 42px;
+    color: #00599C;
+    border-bottom: 3px solid #00599C;
+    padding-bottom: 10px;
+  }
+  /* Highlighted text */
+  strong {
+    color: #00599C;
+    font-weight: bold;
+  }
+  /* Key points */
+  em {
+    color: #D14;
+    font-style: italic;
+  }
+  /* Code blocks */
+  pre {
+    background: #f5f5f5;
+    border-left: 4px solid #00599C;
+    padding: 1em;
+  }
+  code {
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: #D14;
+  }
+  /* Lists */
+  ul, ol {
+    line-height: 1.6;
+  }
+  li {
+    margin-bottom: 0.5em;
+  }
+  /* Highlight boxes */
+  blockquote {
+    background: #e3f2fd;
+    border-left: 5px solid #00599C;
+    padding: 1em;
+    margin: 1em 0;
+    font-style: italic;
   }
   /* Two column layout */
   .columns {
@@ -38,6 +79,36 @@ style: |
     display: grid;
     grid-template-columns: 1fr 2fr;
     gap: 1rem;
+  }
+  /* Key concept boxes */
+  .key-concept {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5em;
+    border-radius: 10px;
+    margin: 1em 0;
+    font-size: 1.1em;
+  }
+  /* Success/Pro boxes */
+  .pro {
+    background: #d4edda;
+    border-left: 5px solid #28a745;
+    padding: 1em;
+    margin: 0.5em 0;
+  }
+  /* Warning/Con boxes */
+  .con {
+    background: #fff3cd;
+    border-left: 5px solid #ffc107;
+    padding: 1em;
+    margin: 0.5em 0;
+  }
+  /* Error/Danger boxes */
+  .danger {
+    background: #f8d7da;
+    border-left: 5px solid #dc3545;
+    padding: 1em;
+    margin: 0.5em 0;
   }
   /* Logo in bottom right corner */
   section::after {
