@@ -129,6 +129,11 @@ style: |
 
 Building Reusable and Type-Safe Code
 
+<br><br>
+
+**Author:** [Your Name]  
+**Date:** November 10, 2025
+
 ---
 
 ## What is Generic Programming?
