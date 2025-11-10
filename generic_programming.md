@@ -3,6 +3,7 @@ marp: true
 theme: default
 paginate: true
 size: 16:9
+footer: '![width:60px](logo.svg)'
 style: |
   section {
     font-size: 28px;
@@ -110,18 +111,23 @@ style: |
     padding: 1em;
     margin: 0.5em 0;
   }
-  /* Logo in bottom right corner */
+  /* Footer with logo on left */
+  footer {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 0;
+    position: absolute;
+    bottom: 20px;
+    left: 30px;
+    opacity: 0.8;
+  }
+  /* Page number on right */
   section::after {
-    content: '';
     position: absolute;
     bottom: 20px;
     right: 30px;
-    width: 60px;
-    height: 60px;
-    background-image: url('logo.svg');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
+    left: auto;
   }
 ---
 
@@ -298,31 +304,48 @@ Array<double, 10> arr2;  // T=double, N=10
 
 ## Non-Type Template Parameters
 
+<div class="columns">
+<div>
+
 **Allowed non-type parameter types:**
 - Integral types: `int`, `char`, `bool`, `size_t`, `enum`
 - Pointer/reference types
 - `std::nullptr_t`
 - C++20: Floating point, literal class types
 
+**Integer parameter**
 ```cpp
-// Integer parameter
 template <int Size>
 class Buffer {
     char data[Size];
 };
+```
 
-// Multiple non-type parameters
+</div>
+<div>
+
+**Multiple non-type parameters**
+```cpp
 template <typename T, size_t Rows, size_t Cols>
 class Matrix {
     T data[Rows][Cols];
 public:
-    T& at(size_t r, size_t c) { return data[r][c]; }
-    constexpr size_t rows() const { return Rows; }
-    constexpr size_t cols() const { return Cols; }
+    T& at(size_t r, size_t c) { 
+        return data[r][c]; 
+    }
+    constexpr size_t rows() const { 
+        return Rows; 
+    }
+    constexpr size_t cols() const { 
+        return Cols; 
+    }
 };
 
 Matrix<double, 3, 3> identity;  // 3x3 matrix
 ```
+
+</div>
+</div>
 
 ---
 
@@ -482,28 +505,42 @@ public:
 
 ## CRTP - Benefits and Use Cases
 
-**Why use CRTP?**
-- ✅ **Compile-time polymorphism** - No virtual function overhead
-- ✅ **Code reuse** - Share implementation across derived classes
-- ✅ **Type-safe** - Errors caught at compile time
-- ✅ **Zero runtime cost** - Calls are inlined
+<div class="columns">
+<div>
 
+**Why use CRTP?**
+- ✅ **Compile-time polymorphism**  
+  No virtual function overhead
+- ✅ **Code reuse**  
+  Share implementation across derived classes
+- ✅ **Type-safe**  
+  Errors caught at compile time
+- ✅ **Zero runtime cost**  
+  Calls are inlined
+
+</div>
+<div>
+
+**Use case: Comparable mixin**
 ```cpp
-// Use case: Adding functionality to derived classes
 template <typename T>
 class Comparable {
 public:
     bool operator!=(const T& other) const {
-        return !(static_cast<const T&>(*this) == other);
+        return !(static_cast<const T&>(*this) 
+                 == other);
     }
     bool operator>(const T& other) const {
-        return other < static_cast<const T&>(*this);
+        return other < 
+               static_cast<const T&>(*this);
     }
     bool operator<=(const T& other) const {
-        return !(static_cast<const T&>(*this) > other);
+        return !(static_cast<const T&>(*this) 
+                 > other);
     }
     bool operator>=(const T& other) const {
-        return !(static_cast<const T&>(*this) < other);
+        return !(static_cast<const T&>(*this) 
+                 < other);
     }
 };
 
@@ -511,11 +548,18 @@ class MyInt : public Comparable<MyInt> {
     int value;
 public:
     MyInt(int v) : value(v) {}
-    bool operator==(const MyInt& other) const { return value == other.value; }
-    bool operator<(const MyInt& other) const { return value < other.value; }
+    bool operator==(const MyInt& o) const { 
+        return value == o.value; 
+    }
+    bool operator<(const MyInt& o) const { 
+        return value < o.value; 
+    }
     // Get !=, >, <=, >= for free!
 };
 ```
+
+</div>
+</div>
 
 ---
 
@@ -523,40 +567,71 @@ public:
 
 **Static Polymorphism vs Virtual Functions:**
 
+<div class="columns">
+<div>
+
+**Traditional (runtime cost)**
 ```cpp
-// Traditional virtual functions (runtime cost)
 class Animal {
 public:
-    virtual void speak() = 0;  // Runtime dispatch
+    virtual void speak() = 0;
+    // Runtime dispatch via vtable
 };
 
-// CRTP approach (compile-time, zero overhead)
+class Dog : public Animal {
+public:
+    void speak() override {
+        std::cout << "Woof!\n";
+    }
+};
+
+class Cat : public Animal {
+public:
+    void speak() override {
+        std::cout << "Meow!\n";
+    }
+};
+```
+❌ Virtual table overhead  
+❌ Runtime dispatch cost
+
+</div>
+<div>
+
+**CRTP (zero overhead)**
+```cpp
 template <typename Derived>
 class AnimalCRTP {
 public:
     void speak() {
-        static_cast<Derived*>(this)->speak_impl();
+        static_cast<Derived*>(this)
+            ->speak_impl();
     }
     void describe() {
         std::cout << "This animal says: ";
-        speak();  // Compile-time dispatch!
+        speak();  // Compile-time!
     }
 };
 
 class Dog : public AnimalCRTP<Dog> {
 public:
-    void speak_impl() { std::cout << "Woof!\n"; }
+    void speak_impl() { 
+        std::cout << "Woof!\n"; 
+    }
 };
 
 class Cat : public AnimalCRTP<Cat> {
 public:
-    void speak_impl() { std::cout << "Meow!\n"; }
+    void speak_impl() { 
+        std::cout << "Meow!\n"; 
+    }
 };
-
-// Usage: No virtual table, fully inlined
-Dog dog;
-dog.describe();  // "This animal says: Woof!"
 ```
+✅ No virtual table  
+✅ Fully inlined
+
+</div>
+</div>
 
 ---
 
@@ -736,6 +811,161 @@ compare(42);        // Only integer branch compiled
 compare(3.14);      // Only float branch compiled
 compare("hello");   // Only other branch compiled
 ```
+
+---
+
+## Compile-Time Computation
+
+Move computations from runtime to compile time for zero-cost abstractions:
+
+<div class="columns">
+<div>
+
+**constexpr variables**
+```cpp
+constexpr int factorial(int n) {
+    return n <= 1 ? 1 : n * factorial(n-1);
+}
+
+constexpr int val = factorial(5);  // 120
+// Computed at compile time!
+// No runtime overhead
+
+constexpr double pi = 3.14159265359;
+constexpr double area(double r) {
+    return pi * r * r;
+}
+constexpr double circle_area = area(10.0);
+```
+
+</div>
+<div>
+
+**Template metaprogramming**
+```cpp
+// Fibonacci at compile time
+template <int N>
+struct Fibonacci {
+    static constexpr int value = 
+        Fibonacci<N-1>::value + 
+        Fibonacci<N-2>::value;
+};
+
+template <>
+struct Fibonacci<0> {
+    static constexpr int value = 0;
+};
+
+template <>
+struct Fibonacci<1> {
+    static constexpr int value = 1;
+};
+
+// Computed at compile time
+constexpr int fib10 = Fibonacci<10>::value;
+// fib10 = 55, no runtime cost!
+```
+
+</div>
+</div>
+
+---
+
+## Compile-Time Computation - Advanced
+
+<div class="columns">
+<div>
+
+**constexpr functions (C++14+)**
+```cpp
+// Complex compile-time computation
+constexpr int pow(int base, int exp) {
+    int result = 1;
+    for (int i = 0; i < exp; ++i) {
+        result *= base;
+    }
+    return result;
+}
+
+constexpr int lookup_table[5] = {
+    pow(2, 0),  // 1
+    pow(2, 1),  // 2
+    pow(2, 2),  // 4
+    pow(2, 3),  // 8
+    pow(2, 4)   // 16
+};
+// All computed at compile time!
+
+// Also works at runtime if needed
+int runtime_val = pow(2, x);
+```
+
+</div>
+<div>
+
+**consteval (C++20)**
+```cpp
+// MUST be evaluated at compile time
+consteval int compile_time_only(int n) {
+    return n * n;
+}
+
+constexpr int a = compile_time_only(5);  
+// OK: compile time
+
+// int b = compile_time_only(x);  
+// Error: x is runtime variable
+
+// Type-safe compile-time strings
+consteval auto get_version() {
+    return "v1.2.3";
+}
+
+// Enforce compile-time evaluation
+template <auto Value>
+struct CompileTimeValue {
+    static constexpr auto value = Value;
+};
+
+CompileTimeValue<compile_time_only(10)> ct;
+```
+
+</div>
+</div>
+
+---
+
+## Compile-Time vs Runtime
+
+```cpp
+// Runtime computation (slow)
+int runtime_factorial(int n) {
+    int result = 1;
+    for (int i = 2; i <= n; ++i)
+        result *= i;
+    return result;
+}
+
+int main() {
+    int x = runtime_factorial(10);  // Computed every time program runs
+}
+
+// Compile-time computation (zero cost)
+constexpr int compile_time_factorial(int n) {
+    return n <= 1 ? 1 : n * compile_time_factorial(n-1);
+}
+
+int main() {
+    constexpr int x = compile_time_factorial(10);  // Computed once at compile time
+    // x is a constant in the binary, like writing: const int x = 3628800;
+}
+```
+
+**Benefits:**
+- ✅ Zero runtime overhead - results baked into binary
+- ✅ Catch errors at compile time
+- ✅ Enable advanced metaprogramming
+- ✅ Optimize performance-critical code
 
 ---
 
