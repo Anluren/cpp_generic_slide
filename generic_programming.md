@@ -1027,6 +1027,95 @@ auto print(const T& value) {
 
 ---
 
+## Metafunctions
+
+**Metafunctions** are templates that perform compile-time computations on types:
+
+<div class="columns">
+<div>
+
+**Type transformations**
+```cpp
+// Remove const qualifier
+template <typename T>
+struct RemoveConst {
+    using type = T;
+};
+
+template <typename T>
+struct RemoveConst<const T> {
+    using type = T;
+};
+
+// Helper alias (C++14)
+template <typename T>
+using RemoveConst_t = 
+    typename RemoveConst<T>::type;
+
+// Usage
+using A = const int;
+using B = RemoveConst_t<A>;  // int
+
+// Add pointer
+template <typename T>
+struct AddPointer {
+    using type = T*;
+};
+
+template <typename T>
+using AddPointer_t = 
+    typename AddPointer<T>::type;
+
+AddPointer_t<int> ptr;  // int*
+```
+
+</div>
+<div>
+
+**Type computations**
+```cpp
+// Conditional type selection
+template <bool Cond, typename T, typename F>
+struct Conditional {
+    using type = T;
+};
+
+template <typename T, typename F>
+struct Conditional<false, T, F> {
+    using type = F;
+};
+
+template <bool Cond, typename T, typename F>
+using Conditional_t = 
+    typename Conditional<Cond, T, F>::type;
+
+// Use in templates
+template <typename T>
+class Container {
+    // Use int for small types, size_t for large
+    using size_type = Conditional_t<
+        (sizeof(T) <= 4),
+        int,
+        size_t
+    >;
+    
+    size_type size_;
+};
+
+// Chain metafunctions
+template <typename T>
+using RemoveConstPtr_t = 
+    AddPointer_t<RemoveConst_t<T>>;
+
+using X = const int;
+using Y = RemoveConstPtr_t<X>;  // int*
+```
+
+</div>
+</div>
+
+---
+
 ## Variadic Templates
 
 Accept variable number of arguments:
@@ -1048,6 +1137,85 @@ void print(T first, Args... rest) {
 print(1, 2.5, "hello", 'c', true);
 // Output: 1 2.5 hello c 1
 ```
+
+---
+
+## std::tuple - Heterogeneous Container
+
+Store multiple values of different types together:
+
+<div class="columns">
+<div>
+
+**Basic usage**
+```cpp
+#include <tuple>
+
+// Create tuple
+std::tuple<int, double, std::string> t1{
+    42, 3.14, "hello"
+};
+
+// Access elements with std::get
+int a = std::get<0>(t1);        // 42
+double b = std::get<1>(t1);     // 3.14
+auto c = std::get<2>(t1);       // "hello"
+
+// Make tuple (type deduction)
+auto t2 = std::make_tuple(1, 2.5, 'x');
+
+// Structured bindings (C++17)
+auto [x, y, z] = t1;
+// x=42, y=3.14, z="hello"
+
+// Tuple size and type
+constexpr size_t sz = 
+    std::tuple_size_v<decltype(t1)>;  // 3
+
+using FirstType = 
+    std::tuple_element_t<0, decltype(t1)>;
+// FirstType is int
+```
+
+</div>
+<div>
+
+**Advanced operations**
+```cpp
+// Concatenate tuples
+auto t1 = std::make_tuple(1, 2);
+auto t2 = std::make_tuple(3.14, "hi");
+auto t3 = std::tuple_cat(t1, t2);
+// t3 = (1, 2, 3.14, "hi")
+
+// Compare tuples
+auto ta = std::make_tuple(1, 2, 3);
+auto tb = std::make_tuple(1, 2, 4);
+bool less = ta < tb;  // true (lexicographic)
+
+// Swap tuples
+std::swap(ta, tb);
+
+// Apply function to tuple elements
+auto sum = [](int a, double b, int c) {
+    return a + b + c;
+};
+auto result = std::apply(sum, 
+    std::make_tuple(1, 2.5, 3));  // 6.5
+
+// Return multiple values
+std::tuple<bool, int, std::string> 
+divide(int a, int b) {
+    if (b == 0) 
+        return {false, 0, "Division by zero"};
+    return {true, a / b, "Success"};
+}
+
+auto [ok, result, msg] = divide(10, 2);
+```
+
+</div>
+</div>
 
 ---
 
